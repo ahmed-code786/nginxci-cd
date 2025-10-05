@@ -34,24 +34,24 @@ jobs:
             sudo rm -rf /etc/nginx/sites-enabled/default
             cat <<'EOF' | sudo tee /etc/nginx/sites-available/wordpress
             server {
-                listen 80;
-                root /var/www/html/wordpress;
-                index index.php index.html;
-                server_name _;
+    listen 80;
+    root /var/www/html;
+    index index.php index.html;
+    server_name _;
 
-                location / {
-                    try_files \$uri \$uri/ /index.php?\$args;
-                }
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
 
-                location ~ \.php$ {
-                    include snippets/fastcgi-php.conf;
-                    fastcgi_pass unix:/run/php/php-fpm.sock;
-                }
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+    }
 
-                location ~ /\.ht {
-                    deny all;
-                }
-            }
+    location ~ /\.ht {
+        deny all;
+    }
+}
             EOF
 
             sudo ln -sf /etc/nginx/sites-available/wordpress /etc/nginx/sites-enabled/
