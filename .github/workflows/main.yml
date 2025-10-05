@@ -62,9 +62,9 @@ jobs:
             cd /tmp
             wget https://wordpress.org/latest.zip
             unzip -o latest.zip
-            sudo mv wordpress /var/www/html/
-            sudo chown -R www-data:www-data /var/www/html/wordpress
-            sudo chmod -R 755 /var/www/html/wordpress
+            sudo mv wordpress* /var/www/html/
+            sudo chown -R www-data:www-data /var/www/html
+            sudo chmod -R 755 /var/www/html
 
             # Configure wp-config.php automatically
             cd /var/www/html/wordpress
