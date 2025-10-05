@@ -1,4 +1,4 @@
-name: Deploy to EC2 and Install Nginx
+name: Deploy WordPress to EC2
 
 on:
   push:
@@ -10,19 +10,54 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Connect to EC2 and install Nginx
+      - name: Setup WordPress on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            echo "✅ Connected to EC2"
+            echo "✅ Connecting to EC2"
             sudo apt update -y
-            sudo apt install nginx -y
-            sudo systemctl enable nginx
+            sudo apt install nginx mysql-server php-fpm php-mysql wget unzip -y
+
+            # Configure Nginx for WordPress
+            sudo rm -rf /etc/nginx/sites-enabled/default
+            cat <<'EOF' | sudo tee /etc/nginx/sites-available/wordpress
+            server {
+                listen 80;
+                root /var/www/html/wordpress;
+                index index.php index.html index.htm;
+                server_name _;
+                
+                location / {
+                    try_files \$uri \$uri/ /index.php?\$args;
+                }
+
+                location ~ \.php$ {
+                    include snippets/fastcgi-php.conf;
+                    fastcgi_pass unix:/run/php/php-fpm.sock;
+                }
+
+                location ~ /\.ht {
+                    deny all;
+                }
+            }
+            EOF
+
+            sudo ln -sf /etc/nginx/sites-available/wordpress /etc/nginx/sites-enabled/
             sudo systemctl restart nginx
-            echo "Nginx installation complete ✅"
+
+            # Install WordPress
+            cd /tmp
+            wget https://wordpress.org/latest.zip
+            unzip -o latest.zip
+            sudo mv wordpress /var/www/html/
+            sudo chown -R www-data:www-data /var/www/html/wordpress
+            sudo chmod -R 755 /var/www/html/wordpress
+
+            echo "✅ WordPress setup complete"
+            echo "Access your site at http://${{ secrets.EC2_HOST }}"
