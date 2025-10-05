@@ -21,6 +21,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             echo "✅ Connecting to EC2"
+
+            # Update and install dependencies
             sudo apt update -y
             sudo apt install nginx mysql-server php php-mysql php-fpm wget unzip -y
 
@@ -30,10 +32,9 @@ jobs:
             sudo mysql -e "GRANT ALL PRIVILEGES ON wordpress.* TO 'wpuser'@'localhost';"
             sudo mysql -e "FLUSH PRIVILEGES;"
 
-            # Configure Nginx
+            # Configure Nginx for WordPress
             sudo rm -rf /etc/nginx/sites-enabled/default
             cat <<'EOF' | sudo tee /etc/nginx/sites-available/wordpress
-            server {
             server {
                 listen 80;
                 root /var/www/html;
@@ -56,9 +57,9 @@ jobs:
             EOF
 
             sudo ln -sf /etc/nginx/sites-available/wordpress /etc/nginx/sites-enabled/
-            sudo systemctl restart nginx
+            sudo nginx -t && sudo systemctl restart nginx
 
-            # Download and setup WordPress
+            # Download and set up WordPress
             cd /tmp
             wget https://wordpress.org/latest.zip
             unzip -o latest.zip
@@ -66,13 +67,16 @@ jobs:
             sudo chown -R www-data:www-data /var/www/html
             sudo chmod -R 755 /var/www/html
 
-            # Configure wp-config.php automatically
-            cd /var/www/html/wordpress
+            # Configure wp-config.php
+            cd /var/www/html
             sudo cp wp-config-sample.php wp-config.php
             sudo sed -i "s/database_name_here/wordpress/" wp-config.php
             sudo sed -i "s/username_here/wpuser/" wp-config.php
             sudo sed -i "s/password_here/wppassword/" wp-config.php
             sudo sed -i "s/localhost/localhost/" wp-config.php
 
+            # Restart services
             sudo systemctl restart nginx
-            echo "✅ WordPress + Database setup complete"
+            sudo systemctl restart php8.3-fpm
+
+            echo "✅ WordPress + Database setup complete and running"
